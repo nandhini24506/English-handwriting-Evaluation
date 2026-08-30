@@ -1,0 +1,16 @@
+image_size: 224
+batch_size: 16
+epochs: 25
+learning_rate: 0.0003
+validation_split: 0.15
+test_split: 0.15
+random_seed: 42
+early_stopping_patience: 5
+
+weights:
+  letter_formation: 0.20
+  word_spacing: 0.20
+  alignment: 0.20
+  slant_consistency: 0.15
+  size_consistency: 0.10
+  legibility: 0.15
