@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Dashboard</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body>
+    <nav>
+        <strong>Handwriting Evaluation</strong>
+        <span><a href="{{ url_for('dashboard') }}">Dashboard</a>{% if not teacher %}<a href="{{ url_for('upload') }}">New evaluation</a>
+            <a href="{{ url_for('history') }}">History</a>{% endif %}<a href="{{ url_for('logout') }}">Logout</a>
+        </span>
+    </nav>
+    <main class="content"><h1>{% if teacher %}Teacher dashboard{% else %}Welcome, {{ session.name }}{% endif %}</h1>{% with messages = get_flashed_messages() %}{% for message in messages %}<p class="message">{{ message }}</p>{% endfor %}{% endwith %}{% if teacher %}<table><tr><th>Student</th><th>Email</th><th>Score</th><th>Grade</th><th>Date</th><th></th></tr>{% for item in evaluations %}<tr><td>{{ item.name }}</td><td>{{ item.email }}</td><td>{{ item.overall_score }}</td><td>{{ item.grade }}</td><td>{{ item.created_at }}</td><td><a href="{{ url_for('result', evaluation_id=item.id) }}">View</a></td></tr>{% else %}<tr><td colspan="6">No evaluations yet.</td></tr>{% endfor %}</table>{% else %}<a class="button" href="{{ url_for('upload') }}">Upload handwriting</a><h2>Recent evaluations</h2><table><tr><th>Date</th><th>Score</th><th>Grade</th><th></th></tr>{% for item in evaluations %}<tr><td>{{ item.created_at }}</td><td>{{ item.overall_score }}</td><td>{{ item.grade }}</td><td><a href="{{ url_for('result', evaluation_id=item.id) }}">View</a></td></tr>{% else %}<tr><td colspan="4">No evaluations yet.</td></tr>{% endfor %}</table>{% endif %}</main>
+</body></html>

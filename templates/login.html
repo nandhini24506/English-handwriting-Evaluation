@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Login</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body>
+    <main class="card narrow">
+
+        <h1>Handwriting Evaluation</h1>
+        <h2>Login</h2>{% with messages = get_flashed_messages() %}{% for message in messages %}
+        <p class="message">{{ message }}</p>{% endfor %}{% endwith %}
+        <form method="post">
+            <label>Email<input type="email" name="email" required></label>
+            <label>Password<input type="password" name="password" required></label>
+            <button type="submit">Login</button>
+        </form>
+        <p>New student? <a href="{{ url_for('register') }}">Create an account</a>
+        </p>
+    </main>
+</body>
+</html>

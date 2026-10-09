@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Register</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    </head>
+<body>
+    <main class="card narrow">
+        <h1>Handwriting Evaluation</h1>
+        <h2>Register</h2>{% with messages = get_flashed_messages() %}{% for message in messages %}
+        <p class="message">{{ message }}</p>{% endfor %}{% endwith %}
+        <form method="post">
+            <label>Name<input name="name" required></label>
+            <label>Email<input type="email" name="email" required></label>
+            <label>Password<input type="password" name="password" required minlength="6"></label>
+            <button type="submit">Register</button>
+        </form>
+        <p>Already registered? <a href="{{ url_for('login') }}">Login</a>
+        </p>
+    </main>
+</body>
+</html>

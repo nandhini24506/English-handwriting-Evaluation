@@ -1,0 +1,7 @@
+Flask
+mysql-connector-python
+opencv-python
+python-dotenv
+google-genai
+Werkzeug
+Pillow

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+    <head><meta charset="utf-8">
+        <title>History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body>
+    <nav>
+        <strong>Handwriting Evaluation</strong>
+        <span><a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('upload') }}">New evaluation</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </span>
+    </nav>
+<main class="content">
+<h1>Evaluation history</h1>
+<table>
+<tr>
+<th>Date</th>
+<th>Score</th>
+<th>Grade</th>
+<th></th>
+</tr>{% for item in evaluations %}<tr>
+<td>{{ item.created_at }}</td>
+<td>{{ item.overall_score }}</td>
+<td>{{ item.grade }}</td>
+<td><a href="{{ url_for('result', evaluation_id=item.id) }}">View result</a></td>
+</tr>{% else %}<tr>
+<td colspan="4">No evaluations yet.</td>
+</tr>{% endfor %}</table>
+</main>
+</body>
+</html>

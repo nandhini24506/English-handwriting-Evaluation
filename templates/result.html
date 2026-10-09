@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Result - {{ evaluation.name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav>
+    <strong>Handwriting Evaluation</strong>
+    <span>
+      <a href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('history') }}">History</a>
+      <a href="{{ url_for('logout') }}">Logout</a>
+    </span>
+  </nav>
+
+  <main class="content">
+    <div class="result-title-bar">
+      <h1>{{ evaluation.name }}'s result</h1>
+      <a class="button secondary" href="{{ url_for('upload') }}">+ New evaluation</a>
+    </div>
+
+    <section class="result-grid">
+      <div class="score-card">
+        <p>Overall score</p>
+        <strong>{{ evaluation.overall_score }}</strong>
+        <span>Grade {{ evaluation.grade }}</span>
+      </div>
+
+      <div class="result-columns">
+        <div class="preview-box">
+          <div class="preview-header">
+            <h2>Handwriting sample</h2>
+            {% if processed_filename %}
+            <div class="image-toggle">
+              <button type="button" class="toggle-btn active" id="btnOriginal" onclick="switchImage('original')">Original</button>
+              <button type="button" class="toggle-btn" id="btnProcessed" onclick="switchImage('processed')">Enhanced</button>
+            </div>
+            {% endif %}
+          </div>
+          <div class="image-frame" onclick="openLightbox()">
+            <img id="handwritingImg"
+                 src="{{ url_for('uploaded_file', filename=evaluation.image_path) }}"
+                 data-original="{{ url_for('uploaded_file', filename=evaluation.image_path) }}"
+                 {% if processed_filename %}data-processed="{{ url_for('uploaded_file', filename=processed_filename) }}"{% endif %}
+                 alt="Uploaded handwriting sample">
+            <div class="zoom-hint">🔍 Click to enlarge</div>
+          </div>
+          <div class="image-actions">
+            <a href="{{ url_for('uploaded_file', filename=evaluation.image_path) }}" target="_blank" class="text-link" id="openFullLink">Open full resolution ↗</a>
+          </div>
+        </div>
+
+        <div class="text-box">
+          <h2>Extracted text</h2>
+          <p class="transcription">{{ evaluation.extracted_text }}</p>
+        </div>
+      </div>
+    </section>
+
+    <h2>Handwriting characteristics</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Score (0 - 100)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for label, key in [
+          ('Letter Formation','letter_formation'),
+          ('Word Spacing','word_spacing'),
+          ('Alignment','alignment'),
+          ('Slant Consistency','slant_consistency'),
+          ('Size Consistency','size_consistency'),
+          ('Legibility','legibility')
+        ] %}
+        <tr>
+          <td>{{ label }}</td>
+          <td><strong>{{ evaluation[key] }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>Feedback</h2>
+    <ul class="feedback-list">
+      {% for item in feedback %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </main>
+
+  <!-- Lightbox Modal for Full Image Inspection -->
+  <div id="lightboxModal" class="lightbox-modal" onclick="closeLightbox(event)">
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+      <button type="button" class="lightbox-close" onclick="closeLightbox(event)">&times;</button>
+      <img id="lightboxImg" src="" alt="Enlarged handwriting sample">
+      <p id="lightboxCaption">Uploaded handwriting sample</p>
+    </div>
+  </div>
+
+  <script>
+    function switchImage(mode) {
+      const img = document.getElementById('handwritingImg');
+      const btnOriginal = document.getElementById('btnOriginal');
+      const btnProcessed = document.getElementById('btnProcessed');
+      const fullLink = document.getElementById('openFullLink');
+
+      if (mode === 'original') {
+        const src = img.getAttribute('data-original');
+        img.src = src;
+        if (fullLink) fullLink.href = src;
+        btnOriginal.classList.add('active');
+        if (btnProcessed) btnProcessed.classList.remove('active');
+      } else if (mode === 'processed') {
+        const src = img.getAttribute('data-processed');
+        img.src = src;
+        if (fullLink) fullLink.href = src;
+        if (btnProcessed) btnProcessed.classList.add('active');
+        btnOriginal.classList.remove('active');
+      }
+    }
+
+    function openLightbox() {
+      const currentSrc = document.getElementById('handwritingImg').src;
+      const modal = document.getElementById('lightboxModal');
+      const modalImg = document.getElementById('lightboxImg');
+      modalImg.src = currentSrc;
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox(e) {
+      const modal = document.getElementById('lightboxModal');
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeLightbox();
+      }
+    });
+  </script>
+</body>
+</html>

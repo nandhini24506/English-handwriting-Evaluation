@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Upload Handwriting</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav>
+    <strong>Handwriting Evaluation</strong>
+    <span>
+      <a href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('history') }}">History</a>
+      <a href="{{ url_for('logout') }}">Logout</a>
+    </span>
+  </nav>
+
+  <main class="card narrow">
+    <h1>Upload handwriting</h1>
+    {% with messages = get_flashed_messages() %}
+      {% for message in messages %}
+        <p class="message">{{ message }}</p>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="post" enctype="multipart/form-data" id="uploadForm">
+      <div class="drop-zone" id="dropZone">
+        <label for="imageInput" class="drop-zone-label">
+          <div class="drop-zone-icon">📷</div>
+          <span class="drop-zone-text">Click to choose image or drag & drop here</span>
+          <span class="drop-zone-sub">Supported formats: JPG, JPEG, PNG</span>
+        </label>
+        <input type="file" id="imageInput" name="image" accept=".jpg,.jpeg,.png" required>
+      </div>
+
+      <!-- Live Client-Side Preview Area -->
+      <div id="previewCard" class="upload-preview-card hidden">
+        <div class="preview-card-header">
+          <strong>Selected Image Preview</strong>
+          <button type="button" class="btn-clear" id="btnClear" onclick="clearSelectedImage()">✕ Remove</button>
+        </div>
+        <div class="preview-img-wrapper">
+          <img id="uploadPreviewImg" src="" alt="Handwriting preview">
+        </div>
+        <div class="preview-details">
+          <span id="fileName"></span> &bull; <span id="fileSize"></span>
+        </div>
+      </div>
+
+      <div class="submit-section">
+        <button type="submit" id="submitBtn">Evaluate image</button>
+        <div id="loadingIndicator" class="loading-state hidden">
+          <div class="spinner"></div>
+          <span>Analyzing handwriting with Gemini AI... Please wait.</span>
+        </div>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    const input = document.getElementById('imageInput');
+    const dropZone = document.getElementById('dropZone');
+    const previewCard = document.getElementById('previewCard');
+    const previewImg = document.getElementById('uploadPreviewImg');
+    const fileNameSpan = document.getElementById('fileName');
+    const fileSizeSpan = document.getElementById('fileSize');
+    const uploadForm = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    function handleFile(file) {
+      if (!file) return;
+      if (!file.type.match('image.*')) {
+        alert('Please choose a valid image file (JPG, JPEG, PNG).');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewImg.src = e.target.result;
+        fileNameSpan.textContent = file.name;
+
+        const sizeKb = (file.size / 1024).toFixed(1);
+        if (sizeKb > 1024) {
+          fileSizeSpan.textContent = (sizeKb / 1024).toFixed(2) + ' MB';
+        } else {
+          fileSizeSpan.textContent = sizeKb + ' KB';
+        }
+
+        previewCard.classList.remove('hidden');
+        dropZone.classList.add('has-file');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    input.addEventListener('change', function() {
+      if (this.files && this.files[0]) {
+        handleFile(this.files[0]);
+      }
+    });
+
+    // Drag and Drop
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('drag-over');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('drag-over');
+      }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files && files.length > 0) {
+        input.files = files;
+        handleFile(files[0]);
+      }
+    });
+
+    function clearSelectedImage() {
+      input.value = '';
+      previewImg.src = '';
+      previewCard.classList.add('hidden');
+      dropZone.classList.remove('has-file');
+    }
+
+    uploadForm.addEventListener('submit', function() {
+      submitBtn.disabled = true;
+      submitBtn.classList.add('disabled');
+      loadingIndicator.classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>
