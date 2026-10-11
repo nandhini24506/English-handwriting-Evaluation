@@ -1,7 +1,0 @@
-.env
-__pycache__/
-*.pyc
-uploads/*
-!uploads/.gitkeep
-scratch/
-.pytest_cache/
