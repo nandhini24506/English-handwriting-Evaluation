@@ -1,142 +1,84 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Upload Handwriting</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-  <nav>
-    <strong>Handwriting Evaluation</strong>
-    <span>
-      <a href="{{ url_for('dashboard') }}">Dashboard</a>
-      <a href="{{ url_for('history') }}">History</a>
-      <a href="{{ url_for('logout') }}">Logout</a>
-    </span>
-  </nav>
+{% extends "base.html" %}
 
-  <main class="card narrow">
-    <h1>Upload handwriting</h1>
-    {% with messages = get_flashed_messages() %}
-      {% for message in messages %}
-        <p class="message">{{ message }}</p>
-      {% endfor %}
-    {% endwith %}
+{% block title %}Handwriting Upload & Evaluation{% endblock %}
 
-    <form method="post" enctype="multipart/form-data" id="uploadForm">
-      <div class="drop-zone" id="dropZone">
-        <label for="imageInput" class="drop-zone-label">
-          <div class="drop-zone-icon">📷</div>
-          <span class="drop-zone-text">Click to choose image or drag & drop here</span>
-          <span class="drop-zone-sub">Supported formats: JPG, JPEG, PNG</span>
-        </label>
-        <input type="file" id="imageInput" name="image" accept=".jpg,.jpeg,.png" required>
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Evaluate Handwriting Sample</h1>
+    <p class="page-subtitle">Upload a photograph or scan of English handwriting for evaluation</p>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start;">
+  <!-- Upload Workspace Form -->
+  <div class="card">
+    <form id="evaluation-upload-form" method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <!-- Optional Assignment Link -->
+      {% if active_assignments %}
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label class="form-label" for="assignment_id">Link to Assignment (Optional)</label>
+        <select id="assignment_id" name="assignment_id" class="form-select">
+          <option value="">— Independent Submission (No Assignment) —</option>
+          {% for a in active_assignments %}
+            <option value="{{ a.id }}">{{ a.class_name }} — {{ a.title }} (Due: {{ a.due_date or 'No deadline' }})</option>
+          {% endfor %}
+        </select>
+        <p class="form-hint">Associate this submission with an assigned course activity.</p>
+      </div>
+      {% endif %}
+
+      <!-- Interactive Drag & Drop Area -->
+      <div id="upload-dropzone" class="dropzone">
+        <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <h3 class="dropzone-title">Click to browse or drag and drop your handwriting image</h3>
+        <p class="dropzone-text">Supports JPG, JPEG, and PNG files up to 10MB</p>
+        <input type="file" id="image-input" name="image" accept=".jpg,.jpeg,.png,image/jpeg,image/png" style="display: none;" required>
       </div>
 
-      <!-- Live Client-Side Preview Area -->
-      <div id="previewCard" class="upload-preview-card hidden">
-        <div class="preview-card-header">
-          <strong>Selected Image Preview</strong>
-          <button type="button" class="btn-clear" id="btnClear" onclick="clearSelectedImage()">✕ Remove</button>
+      <!-- Preview Section -->
+      <div id="preview-container" class="preview-container" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span id="file-name-display" style="font-size: 13px; font-weight: 600; color: var(--text-secondary);"></span>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('image-input').click()">
+            Replace Image
+          </button>
         </div>
-        <div class="preview-img-wrapper">
-          <img id="uploadPreviewImg" src="" alt="Handwriting preview">
-        </div>
-        <div class="preview-details">
-          <span id="fileName"></span> &bull; <span id="fileSize"></span>
-        </div>
+        <img id="image-preview" class="image-preview" src="#" alt="Handwriting Preview">
       </div>
 
-      <div class="submit-section">
-        <button type="submit" id="submitBtn">Evaluate image</button>
-        <div id="loadingIndicator" class="loading-state hidden">
-          <div class="spinner"></div>
-          <span>Analyzing handwriting with Gemini AI... Please wait.</span>
-        </div>
+      <div style="margin-top: 24px;">
+        <button type="submit" id="submit-evaluate-btn" class="btn btn-primary btn-block btn-lg">
+          Evaluate Handwriting
+        </button>
       </div>
     </form>
-  </main>
+  </div>
 
-  <script>
-    const input = document.getElementById('imageInput');
-    const dropZone = document.getElementById('dropZone');
-    const previewCard = document.getElementById('previewCard');
-    const previewImg = document.getElementById('uploadPreviewImg');
-    const fileNameSpan = document.getElementById('fileName');
-    const fileSizeSpan = document.getElementById('fileSize');
-    const uploadForm = document.getElementById('uploadForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const loadingIndicator = document.getElementById('loadingIndicator');
+  <!-- Guidelines & Instructions Sidebar -->
+  <div>
+    <div class="card" style="background: var(--bg-surface); padding: 20px;">
+      <h3 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        Image Capture Tips
+      </h3>
+      <ul style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; padding-left: 18px; margin-bottom: 14px;">
+        <li><strong>Lighting:</strong> Ensure even, bright light without harsh shadows cast across the lines.</li>
+        <li><strong>Angle:</strong> Hold your camera parallel to the paper to prevent perspective distortion.</li>
+        <li><strong>Sharpness:</strong> Focus clearly on ink strokes for accurate evaluation.</li>
+        <li><strong>Content:</strong> English handwritten script (print, cursive, or mixed).</li>
+      </ul>
 
-    function handleFile(file) {
-      if (!file) return;
-      if (!file.type.match('image.*')) {
-        alert('Please choose a valid image file (JPG, JPEG, PNG).');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        previewImg.src = e.target.result;
-        fileNameSpan.textContent = file.name;
-
-        const sizeKb = (file.size / 1024).toFixed(1);
-        if (sizeKb > 1024) {
-          fileSizeSpan.textContent = (sizeKb / 1024).toFixed(2) + ' MB';
-        } else {
-          fileSizeSpan.textContent = sizeKb + ' KB';
-        }
-
-        previewCard.classList.remove('hidden');
-        dropZone.classList.add('has-file');
-      };
-      reader.readAsDataURL(file);
-    }
-
-    input.addEventListener('change', function() {
-      if (this.files && this.files[0]) {
-        handleFile(this.files[0]);
-      }
-    });
-
-    // Drag and Drop
-    ['dragenter', 'dragover'].forEach(eventName => {
-      dropZone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.add('drag-over');
-      }, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-      dropZone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.remove('drag-over');
-      }, false);
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-      const dt = e.dataTransfer;
-      const files = dt.files;
-      if (files && files.length > 0) {
-        input.files = files;
-        handleFile(files[0]);
-      }
-    });
-
-    function clearSelectedImage() {
-      input.value = '';
-      previewImg.src = '';
-      previewCard.classList.add('hidden');
-      dropZone.classList.remove('has-file');
-    }
-
-    uploadForm.addEventListener('submit', function() {
-      submitBtn.disabled = true;
-      submitBtn.classList.add('disabled');
-      loadingIndicator.classList.remove('hidden');
-    });
-  </script>
-</body>
-</html>
+      <div style="background: var(--bg-subtle); padding: 12px; border-radius: var(--radius-sm); font-size: 12px; color: var(--text-muted); border-left: 3px solid var(--info);">
+        <strong>Evaluation Process:</strong> The image will be processed for quality, transcribed, and evaluated across six core handwriting characteristics.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

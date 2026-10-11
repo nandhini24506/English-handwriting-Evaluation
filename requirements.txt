@@ -1,7 +1,10 @@
-Flask
-mysql-connector-python
-opencv-python
-python-dotenv
-google-genai
-Werkzeug
-Pillow
+Flask>=3.0.0
+mysql-connector-python>=8.0.0
+opencv-python>=4.8.0
+python-dotenv>=1.0.0
+Werkzeug>=3.0.0
+Pillow>=10.0.0
+reportlab>=4.0.0
+requests>=2.31.0
+numpy>=1.24.0
+pytest>=7.0.0

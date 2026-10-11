@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}EHE 2.0{% endblock %} — English Handwriting Evaluation</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+
+<body>
+  <!-- Navigation Header -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="{{ url_for('dashboard') if session.get('user_id') else url_for('login') }}" class="navbar-brand">
+        <div class="brand-icon">E</div>
+        <div>
+          <span class="brand-text">English Handwriting Evaluation</span>
+        </div>
+      </a>
+
+      {% if session.get('user_id') %}
+      <ul class="nav-links">
+        <li>
+          <a href="{{ url_for('dashboard') }}"
+            class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+            Dashboard
+          </a>
+        </li>
+        {% if session.get('role') != 'teacher' %}
+        <li>
+          <a href="{{ url_for('upload') }}" class="nav-link {% if request.endpoint == 'upload' %}active{% endif %}">
+            Evaluate
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('practice_view') }}"
+            class="nav-link {% if request.endpoint == 'practice_view' %}active{% endif %}">
+            Practice
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('progress_view') }}"
+            class="nav-link {% if request.endpoint == 'progress_view' %}active{% endif %}">
+            Progress
+          </a>
+        </li>
+        {% else %}
+        <li>
+          <a href="{{ url_for('teacher_classes_view') }}"
+            class="nav-link {% if request.endpoint == 'teacher_classes_view' %}active{% endif %}">
+            Class Management
+          </a>
+        </li>
+        {% endif %}
+        {% if session.get('role') == 'admin' %}
+        <li>
+          <a href="{{ url_for('admin_dashboard') }}"
+            class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+            Admin Console
+          </a>
+        </li>
+        {% endif %}
+        <li>
+          <a href="{{ url_for('history') }}" class="nav-link {% if request.endpoint == 'history' %}active{% endif %}">
+            History
+          </a>
+        </li>
+      </ul>
+
+      <div class="nav-user">
+        <div class="user-badge">
+          <span>{{ session.get('name') }}</span>
+          <span class="user-role-tag {{ session.get('role') }}">{{ session.get('role') }}</span>
+        </div>
+        <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">Sign Out</a>
+      </div>
+      {% else %}
+      <div class="nav-links">
+        <a href="{{ url_for('login') }}" class="btn btn-secondary btn-sm">Sign In</a>
+        <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">Create Account</a>
+      </div>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- Main Body Content -->
+  <main class="main-content">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container">
+      {% for category, message in messages %}
+      <div
+        class="alert alert-{{ 'error' if category == 'error' else (category if category in ['success', 'warning', 'info'] else 'info') }}">
+        <span>{{ message }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+
+</html>
