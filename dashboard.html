@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Welcome back, {{ session.get('name') }}!</h1>
+    <p class="page-subtitle">
+      {% if teacher %}
+        Monitor student submissions, performance scores, and class trends.
+      {% else %}
+        Track handwriting evaluation scores and recommended practice.
+      {% endif %}
+    </p>
+  </div>
+  <div>
+    {% if not teacher %}
+      <a href="{{ url_for('upload') }}" class="btn btn-primary btn-lg">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        Evaluate Handwriting
+      </a>
+    {% else %}
+      <a href="{{ url_for('teacher_classes_view') }}" class="btn btn-primary">
+        Manage Classes & Assignments
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+{% if teacher %}
+  <!-- Teacher Dashboard Overview -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <span class="stat-label">Total Submissions</span>
+      <span class="stat-value">{{ evaluations|length }}</span>
+      <span class="stat-desc">Evaluated student handwriting samples</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Class Average Score</span>
+      <span class="stat-value">
+        {% if evaluations %}
+          {% set total = namespace(score=0) %}
+          {% for ev in evaluations %}{% set total.score = total.score + ev.overall_score %}{% endfor %}
+          {{ (total.score / evaluations|length)|round(1) }}
+        {% else %}
+          —
+        {% endif %}
+      </span>
+      <span class="stat-desc">Out of 100 maximum rubric points</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Pass Rate</span>
+      <span class="stat-value">
+        {% if evaluations %}
+          {% set passing = namespace(count=0) %}
+          {% for ev in evaluations %}{% if ev.overall_score >= 50 %}{% set passing.count = passing.count + 1 %}{% endif %}{% endfor %}
+          {{ ((passing.count / evaluations|length) * 100)|round(0)|int }}%
+        {% else %}
+          —
+        {% endif %}
+      </span>
+      <span class="stat-desc">Submissions with Grade D or higher</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Recent Student Submissions</h2>
+      <a href="{{ url_for('history') }}" class="btn btn-secondary btn-sm">View All History</a>
+    </div>
+
+    {% if evaluations %}
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Student Name</th>
+              <th>Email</th>
+              <th>Overall Score</th>
+              <th>Grade</th>
+              <th>Submission Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ev in evaluations[:10] %}
+              <tr>
+                <td>#{{ ev.id }}</td>
+                <td><strong>{{ ev.name }}</strong></td>
+                <td>{{ ev.email }}</td>
+                <td><strong>{{ ev.overall_score }}</strong> / 100</td>
+                <td>
+                  <span class="badge badge-{{ ev.grade|lower }}">{{ ev.grade }}</span>
+                </td>
+                <td>{{ ev.created_at|string|truncate(16, True, '') }}</td>
+                <td>
+                  <a href="{{ url_for('result', evaluation_id=ev.id) }}" class="btn btn-outline btn-sm">Inspect Evaluation</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+        <p style="font-size: 15px; margin-bottom: 8px;">No handwriting submissions from students yet.</p>
+        <p style="font-size: 13px;">Students enrolled in your classes will show up here as they submit evaluations.</p>
+      </div>
+    {% endif %}
+  </div>
+
+{% else %}
+  <!-- Student Dashboard -->
+  {% if evaluations %}
+    {% set latest = evaluations[0] %}
+    <div class="stat-grid">
+      <div class="stat-card">
+        <span class="stat-label">Latest Score</span>
+        <span class="stat-value">{{ latest.overall_score }}</span>
+        <span class="stat-desc">Grade: <strong>{{ latest.grade }}</strong> on {{ latest.created_at|string|truncate(10, True, '') }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Total Evaluations</span>
+        <span class="stat-value">{{ evaluations|length }}</span>
+        <span class="stat-desc">Handwriting samples analyzed</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Average Score</span>
+        <span class="stat-value">
+          {% set total = namespace(score=0) %}
+          {% for ev in evaluations %}{% set total.score = total.score + ev.overall_score %}{% endfor %}
+          {{ (total.score / evaluations|length)|round(1) }}
+        </span>
+        <span class="stat-desc">Across all historical assessments</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Weakest Area</span>
+        <span class="stat-value" style="font-size: 20px; text-transform: capitalize;">
+          {{ weakest_metric.label if weakest_metric else 'Letter Formation' }}
+        </span>
+        <span class="stat-desc">Focus priority for practice</span>
+      </div>
+    </div>
+
+    <!-- Spotlight on Latest Evaluation -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Latest Evaluation Spotlight</h2>
+        <a href="{{ url_for('result', evaluation_id=latest.id) }}" class="btn btn-secondary btn-sm">Full Report & PDF</a>
+      </div>
+
+      <div class="result-hero" style="margin-bottom: 12px;">
+        <div class="hero-score-badge">
+          <span class="score-number">{{ latest.overall_score }}</span>
+          <span class="score-max">/ 100</span>
+          <span class="grade-pill">Grade {{ latest.grade }}</span>
+        </div>
+
+        <div class="hero-details-card">
+          <div>
+            <h3 style="font-size: 16px; margin-bottom: 8px;">Transcription Summary</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); background: var(--bg-subtle); padding: 12px; border-radius: var(--radius-sm); border-left: 3px solid var(--primary); font-style: italic;">
+              "{{ latest.extracted_text|truncate(160, True, '...') }}"
+            </p>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+            <a href="{{ url_for('practice_view') }}" class="btn btn-primary btn-sm">
+              Start Targeted Practice Drills
+            </a>
+            <a href="{{ url_for('progress_view') }}" class="btn btn-secondary btn-sm">
+              View Analytics & Trends
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent History Table -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Recent Evaluation History</h2>
+        <a href="{{ url_for('history') }}" class="btn btn-secondary btn-sm">View Complete History</a>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Assessment ID</th>
+              <th>Date</th>
+              <th>Overall Score</th>
+              <th>Grade</th>
+              <th>Transcription Preview</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ev in evaluations[:5] %}
+              <tr>
+                <td>#{{ ev.id }}</td>
+                <td>{{ ev.created_at|string|truncate(16, True, '') }}</td>
+                <td><strong>{{ ev.overall_score }}</strong> / 100</td>
+                <td><span class="badge badge-{{ ev.grade|lower }}">{{ ev.grade }}</span></td>
+                <td><span style="font-size: 13px; color: var(--text-muted);">{{ ev.extracted_text|truncate(45, True, '...') }}</span></td>
+                <td><a href="{{ url_for('result', evaluation_id=ev.id) }}" class="btn btn-outline btn-sm">View Report</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  {% else %}
+    <!-- Honest Empty State for New Students -->
+    <div class="card" style="text-align: center; padding: 50px 20px;">
+      <div class="brand-icon" style="width: 56px; height: 56px; margin: 0 auto 16px; font-size: 24px;">✍️</div>
+      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">No Handwriting Evaluations Yet</h2>
+      <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 24px; font-size: 14px;">
+        Upload your first handwriting sample to receive an evaluation across six core handwriting characteristics.
+      </p>
+      <a href="{{ url_for('upload') }}" class="btn btn-primary btn-lg">
+        Evaluate Your First Sample
+      </a>
+    </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

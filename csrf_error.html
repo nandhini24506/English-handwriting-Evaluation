@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+ 
+{% block title %}Session Security Notice{% endblock %}
+ 
+{% block content %}
+<div class="auth-container">
+  <div class="card" style="text-align: center; padding: 40px 24px;">
+    <div class="brand-icon" style="width: 48px; height: 48px; margin: 0 auto 16px; font-size: 20px; background: #fee2e2; color: #dc2626;">🛡️</div>
+    <h1 style="font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Security Token Expired</h1>
+    <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+      {{ message or "Your session security token was invalid or has expired. A fresh security token has been generated." }}
+    </p>
+    <a href="{{ return_url or url_for('login') }}" class="btn btn-primary btn-block">
+      Reload Form and Try Again
+    </a>
+  </div>
+</div>
+{% endblock %}

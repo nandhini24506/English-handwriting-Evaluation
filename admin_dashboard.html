@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">EHE 2.0 Administration</h1>
+    <p class="page-subtitle">Platform overview, user accounts, and evaluation records</p>
+  </div>
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <form method="POST" action="{{ url_for('admin_logout') }}" style="margin: 0;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-secondary btn-sm">
+        Sign Out (Admin)
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Key Performance Indicators -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <span class="stat-label">Total Registered Users</span>
+    <span class="stat-value">{{ stats.total_users }}</span>
+    <span class="stat-desc">All platform accounts</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Students</span>
+    <span class="stat-value">{{ stats.total_students }}</span>
+    <span class="stat-desc">Enrolled student learners</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Teachers</span>
+    <span class="stat-value">{{ stats.total_teachers }}</span>
+    <span class="stat-desc">Classroom instructors</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Administrators</span>
+    <span class="stat-value">{{ stats.total_admins }}</span>
+    <span class="stat-desc">Privileged accounts</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Total Evaluations</span>
+    <span class="stat-value">{{ stats.total_evaluations }}</span>
+    <span class="stat-desc">Completed assessments</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Active Classes</span>
+    <span class="stat-value">{{ stats.total_classes }}</span>
+    <span class="stat-desc">Course cohorts</span>
+  </div>
+</div>
+
+<!-- System Health Overview Card -->
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <h2 class="card-title">System Health & Services</h2>
+    <span class="badge badge-a">Operational</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; padding: 4px 0;">
+    <div style="background: var(--bg-subtle); padding: 14px; border-radius: var(--radius-sm); border-left: 3px solid var(--success);">
+      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Database</div>
+      <div style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin-top: 4px;">MySQL (Connected)</div>
+      <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">{{ stats.total_evaluations }} evaluations indexed</div>
+    </div>
+    <div style="background: var(--bg-subtle); padding: 14px; border-radius: var(--radius-sm); border-left: 3px solid var(--primary);">
+      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">AI Provider</div>
+      <div style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin-top: 4px;">{{ system_health.ai_provider }}</div>
+      <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Multimodal Vision & OCR</div>
+    </div>
+    <div style="background: var(--bg-subtle); padding: 14px; border-radius: var(--radius-sm); border-left: 3px solid var(--indigo);">
+      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Security</div>
+      <div style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin-top: 4px;">CSRF & Session Active</div>
+      <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">PBKDF2 SHA-256 Hashing</div>
+    </div>
+  </div>
+</div>
+
+<!-- User Management Table -->
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <h2 class="card-title">User Accounts Management</h2>
+    <span class="card-subtitle">Showing {{ users|length }} registered accounts</span>
+  </div>
+
+  {% if users %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>User ID</th>
+            <th>Full Name</th>
+            <th>Email Address</th>
+            <th>Role</th>
+            <th>Evaluations</th>
+            <th>Registered Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+            <tr>
+              <td><strong>#{{ u.id }}</strong></td>
+              <td><strong>{{ u.name }}</strong></td>
+              <td><span style="font-size: 13px; color: var(--text-secondary);">{{ u.email }}</span></td>
+              <td>
+                <span class="badge {{ 'badge-b' if u.role == 'student' else ('badge-a' if u.role == 'teacher' else 'badge-f') }}" style="text-transform: capitalize;">
+                  {{ u.role }}
+                </span>
+              </td>
+              <td><strong>{{ u.evaluation_count }}</strong></td>
+              <td>{{ u.created_at|string|truncate(16, True, '') if u.created_at else '—' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+      No user accounts found.
+    </div>
+  {% endif %}
+</div>
+
+<!-- Recent Evaluation Activity Table -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Recent Handwriting Evaluations</h2>
+    <span class="card-subtitle">Latest platform submissions</span>
+  </div>
+
+  {% if recent_evaluations %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Student</th>
+            <th>Email</th>
+            <th>Score</th>
+            <th>Grade</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ev in recent_evaluations %}
+            <tr>
+              <td><strong>#{{ ev.id }}</strong></td>
+              <td>{{ ev.student_name }}</td>
+              <td><span style="font-size: 13px; color: var(--text-muted);">{{ ev.student_email }}</span></td>
+              <td><strong>{{ ev.overall_score }}</strong> / 100</td>
+              <td><span class="badge badge-{{ ev.grade|lower }}">{{ ev.grade }}</span></td>
+              <td>{{ ev.created_at|string|truncate(16, True, '') if ev.created_at else '—' }}</td>
+              <td>
+                <a href="{{ url_for('result', evaluation_id=ev.id) }}" class="btn btn-outline btn-sm">Inspect Report</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+      No handwriting evaluations recorded yet.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

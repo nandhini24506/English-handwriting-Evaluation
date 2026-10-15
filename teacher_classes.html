@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Class & Assignment Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Class Management & Assignments</h1>
+    <p class="page-subtitle">Create course cohorts, issue handwriting assignments, and review submissions</p>
+  </div>
+  <div>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+      Return to Dashboard
+    </a>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+  <!-- Create New Class Form -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Create Class / Group</h2>
+    </div>
+
+    <form method="POST" action="{{ url_for('create_class_route') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <label class="form-label" for="name">Class Name</label>
+        <input type="text" id="name" name="name" class="form-input" placeholder="English Handwriting - Class 10A" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="code">Class Code (Students use this to join)</label>
+        <input type="text" id="code" name="code" class="form-input" placeholder="ENG-2026-A" required uppercase>
+        <p class="form-hint">Unique alphanumeric code shared with students.</p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="description">Description (Optional)</label>
+        <textarea id="description" name="description" class="form-textarea" rows="2" placeholder="Class details or section"></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block">
+        Create Class
+      </button>
+    </form>
+  </div>
+
+  <!-- Create New Assignment Form -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Create Handwriting Assignment</h2>
+    </div>
+
+    {% if classes %}
+      <form method="POST" action="{{ url_for('create_assignment_route') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+          <label class="form-label" for="class_id">Target Class</label>
+          <select id="class_id" name="class_id" class="form-select" required>
+            {% for c in classes %}
+              <option value="{{ c.id }}">{{ c.name }} (Code: {{ c.code }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="title">Assignment Title</label>
+          <input type="text" id="title" name="title" class="form-input" placeholder="Weekly Pangram Copy-Work #1" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="due_date">Due Date (Optional)</label>
+          <input type="date" id="due_date" name="due_date" class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="desc">Instructions & Required Prompt</label>
+          <textarea id="desc" name="description" class="form-textarea" rows="2" placeholder="Write out the given passage on ruled 4-line paper..."></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">
+          Publish Assignment
+        </button>
+      </form>
+    {% else %}
+      <div style="text-align: center; padding: 30px 10px; color: var(--text-muted);">
+        <p style="font-size: 14px; margin-bottom: 8px;">Please create a class cohort first before issuing assignments.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Active Classes List -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Your Active Classes</h2>
+    <span class="card-subtitle">Enrolled Students & Course Codes</span>
+  </div>
+
+  {% if classes %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Class Name</th>
+            <th>Class Code</th>
+            <th>Enrolled Students</th>
+            <th>Description</th>
+            <th>Created Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in classes %}
+            <tr>
+              <td><strong>{{ c.name }}</strong></td>
+              <td><span class="badge badge-b">{{ c.code }}</span></td>
+              <td><strong>{{ c.student_count }}</strong> students</td>
+              <td>{{ c.description or '—' }}</td>
+              <td>{{ c.created_at|string|truncate(10, True, '') }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 30px; color: var(--text-muted); font-size: 14px;">
+      No classes created yet. Use the form above to set up your first class cohort.
+    </div>
+  {% endif %}
+</div>
+
+<!-- Active Assignments List -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Issued Assignments</h2>
+    <span class="card-subtitle">Student Submissions Tracker</span>
+  </div>
+
+  {% if assignments %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Assignment Title</th>
+            <th>Class</th>
+            <th>Due Date</th>
+            <th>Submissions Received</th>
+            <th>Created On</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in assignments %}
+            <tr>
+              <td><strong>{{ a.title }}</strong></td>
+              <td>{{ a.class_name }}</td>
+              <td>{{ a.due_date or 'No deadline' }}</td>
+              <td><span class="badge badge-a">{{ a.submission_count }} submissions</span></td>
+              <td>{{ a.created_at|string|truncate(10, True, '') }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 30px; color: var(--text-muted); font-size: 14px;">
+      No assignments published yet.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

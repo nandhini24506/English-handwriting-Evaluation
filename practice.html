@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Personalised Practice Centre{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Personalised Practice Centre</h1>
+    <p class="page-subtitle">Targeted handwriting exercises tailored to your evaluated weaknesses</p>
+  </div>
+  <div>
+    <a href="{{ url_for('upload') }}" class="btn btn-primary">
+      Upload Completed Practice
+    </a>
+  </div>
+</div>
+
+<!-- Weakest Metric Callout -->
+{% if weakest_metric %}
+<div class="card" style="background: linear-gradient(to right, #eff6ff, #f8fafc); border-left: 4px solid var(--primary);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--primary); letter-spacing: 0.05em;">Priority Growth Target</span>
+      <h2 style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin-top: 2px;">
+        {{ weakest_metric.label }} (Current Score: {{ weakest_metric.score }}/100)
+      </h2>
+      <p style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">
+        Based on your most recent handwriting evaluation, the exercises below target your largest potential score gain.
+      </p>
+    </div>
+    {% if latest_eval_id %}
+      <a href="{{ url_for('result', evaluation_id=latest_eval_id) }}" class="btn btn-secondary btn-sm">
+        View Evaluation Report #{{ latest_eval_id }}
+      </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Recommended Exercises Grid -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Curated Practice Exercises</h2>
+    <span class="card-subtitle">Recommended Improvement Drills</span>
+  </div>
+
+  <div style="display: grid; gap: 20px;">
+    {% for ex in exercises %}
+      <div style="border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 20px; background: var(--bg-surface); box-shadow: var(--shadow-sm);">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">{{ ex.title }}</h3>
+          <span class="badge badge-b">{{ ex.level }} Level</span>
+        </div>
+
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
+          {{ ex.instructions }}
+        </p>
+
+        <!-- Focus Cue Box -->
+        <div style="background: #fffbeb; border-left: 3px solid var(--warning); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 13px; color: var(--warning-text); margin-bottom: 14px;">
+          <strong>Technique Focus:</strong> {{ ex.focus_cue }}
+        </div>
+
+        <!-- Copy-Work Prompt Box -->
+        <div style="background: var(--bg-subtle); border: 1px dashed var(--border-medium); padding: 14px 18px; border-radius: var(--radius-sm); margin-bottom: 16px;">
+          <span style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">
+            Target Copy-Work Text:
+          </span>
+          <span style="font-family: Georgia, serif; font-size: 18px; color: #1e293b; letter-spacing: 0.02em;">
+            "{{ ex.target_text }}"
+          </span>
+        </div>
+
+        <!-- Completion Recording Form -->
+        <form method="POST" action="{{ url_for('complete_practice') }}" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="exercise_title" value="{{ ex.title }}">
+          <input type="hidden" name="exercise_text" value="{{ ex.target_text }}">
+          <input type="hidden" name="metric_targeted" value="{{ weakest_metric.metric if weakest_metric else 'letter_formation' }}">
+
+          <input type="text" name="notes" class="form-input" placeholder="Optional notes (e.g., used 3-line ruling, completed 2 pages)" style="flex: 1; min-width: 200px;">
+          <button type="submit" class="btn btn-secondary btn-sm">
+            ✓ Log Drill Completed
+          </button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Completed Practice Activities History -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Completed Practice Log</h2>
+    <span class="card-subtitle">Practice History</span>
+  </div>
+
+  {% if practice_history %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Date Completed</th>
+            <th>Drill Name</th>
+            <th>Target Metric</th>
+            <th>Notes</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in practice_history %}
+            <tr>
+              <td>{{ p.completed_at|string|truncate(16, True, '') or p.created_at|string|truncate(16, True, '') }}</td>
+              <td><strong>{{ p.exercise_title }}</strong></td>
+              <td><span style="text-transform: capitalize;">{{ p.metric_targeted.replace('_', ' ') }}</span></td>
+              <td><span style="font-size: 13px; color: var(--text-muted);">{{ p.notes or '—' }}</span></td>
+              <td><span class="badge badge-a">Completed</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 30px 20px; color: var(--text-muted); font-size: 14px;">
+      No logged practice drills yet. Complete an exercise above and click "Log Drill Completed" to record your progress.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

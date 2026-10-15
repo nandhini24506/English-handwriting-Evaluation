@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Progress Analytics & Score Trends{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Progress Analytics & Longitudinal Trends</h1>
+    <p class="page-subtitle">Track your handwriting improvement trajectories across historical assessments</p>
+  </div>
+  <div>
+    <a href="{{ url_for('upload') }}" class="btn btn-primary">
+      Evaluate New Sample
+    </a>
+  </div>
+</div>
+
+{% if analytics.has_data %}
+  <!-- KPI Metrics -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <span class="stat-label">Evaluations Recorded</span>
+      <span class="stat-value">{{ analytics.total_evaluations }}</span>
+      <span class="stat-desc">Historical data points</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Latest Overall Score</span>
+      <span class="stat-value">{{ analytics.latest_score }}</span>
+      <span class="stat-desc">Grade: <strong>{{ analytics.latest_grade }}</strong></span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Historical Average</span>
+      <span class="stat-value">{{ analytics.average_score }}</span>
+      <span class="stat-desc">Average across all submissions</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Recent Trend</span>
+      <span class="stat-value" style="font-size: 20px; color: {{ 'var(--success)' if analytics.delta > 1.5 else ('var(--danger)' if analytics.delta < -1.5 else 'var(--text-primary)') }};">
+        {{ '+' if analytics.delta > 0 }}{{ analytics.delta }} pts
+      </span>
+      <span class="stat-desc">{{ analytics.score_trend }}</span>
+    </div>
+  </div>
+
+  <!-- Real SVG Score Chart -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Overall Score Trajectory Over Time</h2>
+      <span class="card-subtitle">Historical Performance Trend</span>
+    </div>
+
+    {% if analytics.timeline|length >= 2 %}
+      <div style="background: var(--bg-subtle); padding: 20px; border-radius: var(--radius-md); margin-bottom: 20px;">
+        <!-- SVG Trend Chart -->
+        <svg viewBox="0 0 700 220" style="width: 100%; height: auto; overflow: visible;">
+          <!-- Horizontal Grid Lines (100, 80, 60, 40) -->
+          <line x1="40" y1="20" x2="680" y2="20" stroke="#cbd5e1" stroke-dasharray="4" />
+          <text x="10" y="24" font-size="11" fill="#64748b">100</text>
+
+          <line x1="40" y1="60" x2="680" y2="60" stroke="#cbd5e1" stroke-dasharray="4" />
+          <text x="10" y="64" font-size="11" fill="#64748b">80</text>
+
+          <line x1="40" y1="100" x2="680" y2="100" stroke="#cbd5e1" stroke-dasharray="4" />
+          <text x="10" y="104" font-size="11" fill="#64748b">60</text>
+
+          <line x1="40" y1="140" x2="680" y2="140" stroke="#cbd5e1" stroke-dasharray="4" />
+          <text x="10" y="144" font-size="11" fill="#64748b">40</text>
+
+          <line x1="40" y1="180" x2="680" y2="180" stroke="#94a3b8" />
+          <text x="10" y="184" font-size="11" fill="#64748b">0</text>
+
+          <!-- Compute points in Jinja -->
+          {% set count = analytics.timeline|length %}
+          {% set step = (640 / (count - 1)) if count > 1 else 320 %}
+          
+          <!-- Polylines -->
+          <polyline
+            fill="none"
+            stroke="var(--primary)"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            points="
+              {% for pt in analytics.timeline %}
+                {{ 40 + loop.index0 * step }},{{ 180 - (pt.overall_score * 1.6) }}
+              {% endfor %}
+            "
+          />
+
+          <!-- Data Points Circles & Labels -->
+          {% for pt in analytics.timeline %}
+            {% set cx = 40 + loop.index0 * step %}
+            {% set cy = 180 - (pt.overall_score * 1.6) %}
+            <circle cx="{{ cx }}" cy="{{ cy }}" r="5" fill="var(--primary)" stroke="#ffffff" stroke-width="2" />
+            <text x="{{ cx }}" y="{{ cy - 10 }}" font-size="11" font-weight="bold" fill="#1e3a8a" text-anchor="middle">
+              {{ pt.overall_score }}
+            </text>
+            <text x="{{ cx }}" y="200" font-size="10" fill="#64748b" text-anchor="middle">
+              {{ pt.date }}
+            </text>
+          {% endfor %}
+        </svg>
+      </div>
+    {% else %}
+      <div style="background: var(--bg-subtle); padding: 30px; text-align: center; border-radius: var(--radius-md); margin-bottom: 20px;">
+        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 6px;">
+          Baseline assessment recorded (Score: <strong>{{ analytics.latest_score }}</strong>).
+        </p>
+        <p style="font-size: 13px; color: var(--text-secondary);">
+          Submit at least 2 handwriting evaluations over time to activate the interactive trajectory graph.
+        </p>
+      </div>
+    {% endif %}
+
+    <!-- Accessible Data Table -->
+    <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 12px;">Detailed Assessment History Table</h3>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Assessment ID</th>
+            <th>Overall Score</th>
+            <th>Grade</th>
+            <th>Letter Formation</th>
+            <th>Word Spacing</th>
+            <th>Alignment</th>
+            <th>Slant</th>
+            <th>Size</th>
+            <th>Legibility</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pt in analytics.timeline|reverse %}
+            <tr>
+              <td>{{ pt.date }}</td>
+              <td><a href="{{ url_for('result', evaluation_id=pt.id) }}" style="color: var(--primary); font-weight: 600;">#{{ pt.id }}</a></td>
+              <td><strong>{{ pt.overall_score }}</strong></td>
+              <td><span class="badge badge-{{ pt.grade|lower }}">{{ pt.grade }}</span></td>
+              <td>{{ pt.metrics.letter_formation }}</td>
+              <td>{{ pt.metrics.word_spacing }}</td>
+              <td>{{ pt.metrics.alignment }}</td>
+              <td>{{ pt.metrics.slant_consistency }}</td>
+              <td>{{ pt.metrics.size_consistency }}</td>
+              <td>{{ pt.metrics.legibility }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Weakest vs Strongest Analysis -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div class="card" style="border-left: 4px solid var(--warning);">
+      <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Primary Growth Area (Weakest)</h3>
+      <p style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
+        {{ analytics.weakest_characteristic.label }} (Avg: {{ analytics.weakest_characteristic.average_score }}/100)
+      </p>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+        This characteristic has consistently exhibited the lowest rating across your submission history.
+      </p>
+      <a href="{{ url_for('practice_view') }}" class="btn btn-secondary btn-sm">
+        Start Recommended Exercises
+      </a>
+    </div>
+
+    <div class="card" style="border-left: 4px solid var(--success);">
+      <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Strongest Characteristic</h3>
+      <p style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
+        {{ analytics.strongest_characteristic.label }} (Avg: {{ analytics.strongest_characteristic.average_score }}/100)
+      </p>
+      <p style="font-size: 13px; color: var(--text-muted);">
+        Solid foundational consistency demonstrated across multiple handwriting samples.
+      </p>
+    </div>
+  </div>
+
+{% else %}
+  <!-- Empty State -->
+  <div class="card" style="text-align: center; padding: 50px 20px;">
+    <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">No Progress Records Available</h2>
+    <p style="color: var(--text-muted); font-size: 14px; max-width: 480px; margin: 0 auto 20px;">
+      You have not evaluated any handwriting samples yet. As you submit samples, progress curves and per-metric longitudinal trends will populate here automatically.
+    </p>
+    <a href="{{ url_for('upload') }}" class="btn btn-primary">
+      Evaluate Your First Sample
+    </a>
+  </div>
+{% endif %}
+{% endblock %}

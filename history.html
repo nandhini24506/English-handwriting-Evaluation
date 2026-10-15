@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Evaluation History{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Evaluation History</h1>
+    <p class="page-subtitle">Historical archive of evaluated handwriting submissions and reports</p>
+  </div>
+  <div>
+    {% if session.get('role') != 'teacher' %}
+      <a href="{{ url_for('upload') }}" class="btn btn-primary">
+        New Evaluation
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">All Completed Assessments</h2>
+    <span class="card-subtitle">Total: {{ evaluations|length }} records</span>
+  </div>
+
+  {% if evaluations %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            {% if session.get('role') == 'teacher' %}
+              <th>Student</th>
+              <th>Email</th>
+            {% endif %}
+            <th>Date & Time</th>
+            <th>Overall Score</th>
+            <th>Grade</th>
+            <th>Transcription Preview</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ev in evaluations %}
+            <tr>
+              <td><strong>#{{ ev.id }}</strong></td>
+              {% if session.get('role') == 'teacher' %}
+                <td><strong>{{ ev.name }}</strong></td>
+                <td><span style="font-size: 13px; color: var(--text-muted);">{{ ev.email }}</span></td>
+              {% endif %}
+              <td>{{ ev.created_at|string|truncate(16, True, '') }}</td>
+              <td><strong>{{ ev.overall_score }}</strong> / 100</td>
+              <td><span class="badge badge-{{ ev.grade|lower }}">{{ ev.grade }}</span></td>
+              <td>
+                <span style="font-size: 13px; color: var(--text-secondary); font-style: italic;">
+                  "{{ ev.extracted_text|truncate(50, True, '...') if ev.extracted_text else '[Evaluation #' ~ ev.id ~ ']' }}"
+                </span>
+              </td>
+              <td style="white-space: nowrap;">
+                <a href="{{ url_for('result', evaluation_id=ev.id) }}" class="btn btn-outline btn-sm">
+                  View Report
+                </a>
+                <a href="{{ url_for('download_pdf', evaluation_id=ev.id) }}" class="btn btn-secondary btn-sm" title="Download PDF">
+                  PDF
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+      <p style="font-size: 15px; margin-bottom: 8px;">No evaluation records found in history.</p>
+      {% if session.get('role') != 'teacher' %}
+        <a href="{{ url_for('upload') }}" class="btn btn-primary btn-sm">Upload Sample Now</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

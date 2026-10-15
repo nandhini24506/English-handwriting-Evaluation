@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Evaluation Report #{{ evaluation.id }}{% endblock %}
+
+{% block content %}
+<!-- Page Header with Download Actions -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Evaluation Report #{{ evaluation.id }}</h1>
+    <p class="page-subtitle">
+      Submitted on {{ evaluation.created_at|string|truncate(16, True, '') }}
+      {% if evaluation.name %} • Student: <strong>{{ evaluation.name }}</strong>{% endif %}
+    </p>
+  </div>
+  <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+    <a href="{{ url_for('download_pdf', evaluation_id=evaluation.id) }}" class="btn btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      Download PDF Report
+    </a>
+    <a href="{{ url_for('practice_view') }}" class="btn btn-secondary">
+      Personalised Practice
+    </a>
+    <a href="{{ url_for('history') }}" class="btn btn-outline">
+      History
+    </a>
+  </div>
+</div>
+
+<!-- Hero Score Summary -->
+<div class="result-hero">
+  <div class="hero-score-badge">
+    <span class="score-number">{{ evaluation.overall_score }}</span>
+    <span class="score-max">/ 100</span>
+    <span class="grade-pill">Grade {{ evaluation.grade }}</span>
+  </div>
+
+  <div class="hero-details-card">
+    <div>
+      <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">Overall Evaluation Score</h2>
+      <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5;">
+        Overall score is calculated using the weighted 6-characteristic evaluation model.
+        Weights total 100% across Letter Formation (20%), Word Spacing (20%), Alignment (20%), Slant Consistency (15%), Legibility (15%), and Size Consistency (10%).
+      </p>
+    </div>
+
+    <!-- CV Quality Badge -->
+    {% if cv_features and cv_features.image_quality %}
+      {% set q = cv_features.image_quality %}
+      <div style="margin-top: 14px; padding: 10px 14px; background: var(--bg-subtle); border-radius: var(--radius-sm); display: flex; align-items: center; gap: 12px; font-size: 13px;">
+        <span><strong>Computer Vision Image Quality:</strong></span>
+        <span class="badge {{ 'badge-a' if q.is_readable else 'badge-d' }}">{{ q.sharpness_rating }} Sharpness</span>
+        <span>Lighting: <strong>{{ q.lighting_rating }}</strong></span>
+        <span>Contrast: <strong>{{ q.contrast_rating }}</strong></span>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Six Evaluated Handwriting Characteristics -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Six-Characteristic Rubric Breakdown</h2>
+    <span class="card-subtitle">AI Multimodal Assessment with Evidence</span>
+  </div>
+
+  <div class="metrics-grid">
+    {% for metric in score_breakdown %}
+      {% set key = metric.key %}
+      {% set details = metric_details.get(key, {}) if metric_details else {} %}
+      {% set score = metric.score %}
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-name">{{ metric.label }}</span>
+          <span class="metric-score">{{ score }} <span style="font-size: 12px; color: var(--text-muted);">/100</span></span>
+        </div>
+
+        <div class="progress-track">
+          <div class="progress-bar {{ 'high' if score >= 80 else ('medium' if score >= 60 else 'low') }}" style="width: {{ score }}%;"></div>
+        </div>
+
+        <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">
+          Weight: {{ metric.weight_percent }}% (Contributes {{ metric.weighted_score }} pts)
+        </div>
+
+        <p class="metric-explanation">{{ details.explanation or 'Evaluated based on sample evidence.' }}</p>
+        {% if details.evidence %}
+          <p class="metric-evidence">Evidence: "{{ details.evidence }}"</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Real Computer Vision Measurements Section -->
+{% if cv_features %}
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Computer-Vision Analysis</h2>
+    <span class="card-subtitle">Automated Image Quality & Feature Extraction</span>
+  </div>
+
+  <div class="stat-grid" style="margin-bottom: 0;">
+    <!-- Baseline Alignment -->
+    {% set bl = cv_features.baseline_alignment %}
+    <div class="stat-card">
+      <span class="stat-label">Baseline Alignment</span>
+      <span class="stat-value" style="font-size: 22px;">
+        {% if bl.status == 'ok' %}
+          {{ bl.measured_slope_deg }}° Tilt
+        {% else %}
+          Single Line / Limited
+        {% endif %}
+      </span>
+      <span class="stat-desc">{{ bl.explanation }}</span>
+    </div>
+
+    <!-- Word Spacing -->
+    {% set sp = cv_features.word_spacing %}
+    <div class="stat-card">
+      <span class="stat-label">Word Spacing Interval</span>
+      <span class="stat-value" style="font-size: 22px;">
+        {% if sp.status == 'ok' %}
+          {{ sp.mean_word_gap_px }}px Avg
+        {% else %}
+          Limited Gap Sample
+        {% endif %}
+      </span>
+      <span class="stat-desc">{{ sp.explanation }}</span>
+    </div>
+
+    <!-- Slant Consistency -->
+    {% set sl = cv_features.slant_consistency %}
+    <div class="stat-card">
+      <span class="stat-label">Dominant Stroke Slant</span>
+      <span class="stat-value" style="font-size: 22px;">
+        {% if sl.status == 'ok' %}
+          {{ sl.slant_angle_deg }}° Angle
+        {% else %}
+          Unresolved
+        {% endif %}
+      </span>
+      <span class="stat-desc">{{ sl.explanation }}</span>
+    </div>
+
+    <!-- Size & Stroke Density -->
+    {% set sz = cv_features.size_consistency %}
+    {% set st = cv_features.stroke_density %}
+    <div class="stat-card">
+      <span class="stat-label">Stroke & Glyph Scale</span>
+      <span class="stat-value" style="font-size: 22px;">
+        {% if sz.status == 'ok' %}
+          {{ sz.median_height_px }}px Height
+        {% else %}
+          {{ st.estimated_stroke_width_px }}px Stroke
+        {% endif %}
+      </span>
+      <span class="stat-desc">Ink density: {{ st.ink_density_percent }}% of image area</span>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Visual Comparison (Original vs Preprocessed Image) -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Handwriting Visual Comparison</h2>
+    <span class="card-subtitle">Original Upload vs OpenCV Preprocessed Sample</span>
+  </div>
+
+  <div class="image-comparison-grid">
+    <div class="image-panel">
+      <div class="image-panel-title">Original Sample</div>
+      <img src="{{ url_for('uploaded_file', filename=evaluation.image_path) }}" alt="Original Handwriting Sample">
+    </div>
+
+    <div class="image-panel">
+      <div class="image-panel-title">Preprocessed & Normalized (OpenCV)</div>
+      {% if processed_filename %}
+        <img src="{{ url_for('uploaded_file', filename=processed_filename) }}" alt="Preprocessed Handwriting Sample">
+      {% else %}
+        <img src="{{ url_for('uploaded_file', filename=evaluation.image_path) }}" alt="Handwriting Sample">
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- OCR Transcription & Correction Workflow -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">OCR Text Transcription & Verification</h2>
+    <span class="card-subtitle">Multimodal Text Recognition with Correction History</span>
+  </div>
+
+  <div style="background: var(--bg-subtle); padding: 16px; border-radius: var(--radius-md); border-left: 4px solid var(--primary); margin-bottom: 20px;">
+    <h3 style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">AI Transcription Output</h3>
+    <p style="font-size: 15px; font-style: italic; color: var(--text-primary); line-height: 1.6;">
+      "{{ evaluation.extracted_text }}"
+    </p>
+  </div>
+
+  <!-- Prior Corrections if any -->
+  {% if ocr_corrections %}
+    <div style="margin-bottom: 20px;">
+      <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Submitted Transcription Corrections:</h3>
+      {% for corr in ocr_corrections %}
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-light); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 8px; font-size: 13px;">
+          <div><strong>Corrected by {{ corr.user_name }}:</strong> "{{ corr.corrected_text }}"</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Recorded on {{ corr.created_at|string|truncate(16, True, '') }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Inline Correction Form -->
+  <details style="margin-top: 12px;">
+    <summary style="font-size: 14px; font-weight: 600; color: var(--primary); cursor: pointer; padding: 6px 0;">
+      Flag or submit a transcription correction
+    </summary>
+    <form method="POST" action="{{ url_for('correct_ocr', evaluation_id=evaluation.id) }}" style="margin-top: 14px; background: var(--bg-subtle); padding: 16px; border-radius: var(--radius-sm);">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label class="form-label" for="corrected_text">Accurate English Transcription</label>
+        <textarea id="corrected_text" name="corrected_text" class="form-textarea" rows="3" required placeholder="Type the exact text written in the image...">{{ evaluation.extracted_text }}</textarea>
+        <p class="form-hint">Corrections are stored separately to record OCR precision without altering handwriting quality scores.</p>
+      </div>
+      <button type="submit" class="btn btn-secondary btn-sm">Save Verified Transcription</button>
+    </form>
+  </details>
+</div>
+
+<!-- Actionable Feedback and Recommendations -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Targeted Feedback & Recommended Drills</h2>
+    <span class="card-subtitle">Personalised Recommendations</span>
+  </div>
+
+  {% if feedback %}
+    <div style="display: grid; gap: 14px;">
+      {% for item in feedback %}
+        <div style="background: var(--bg-subtle); padding: 16px; border-radius: var(--radius-md); border-left: 4px solid {{ 'var(--danger)' if item.status == 'needs_critical_focus' else ('var(--warning)' if item.status == 'needs_improvement' else 'var(--success)') }};">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+            <strong style="font-size: 15px; color: var(--text-primary);">{{ item.metric_label }}</strong>
+            <span class="badge {{ 'badge-f' if item.status == 'needs_critical_focus' else ('badge-c' if item.status == 'needs_improvement' else 'badge-a') }}">
+              Priority: {{ item.priority }}
+            </span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">{{ item.feedback_text }}</p>
+          <div style="font-size: 13px; color: var(--text-primary); margin-bottom: 4px;">
+            <strong>Actionable Tip:</strong> {{ item.actionable_tip }}
+          </div>
+          <div style="font-size: 12px; color: var(--primary); font-weight: 500;">
+            <strong>Recommended Drill:</strong> {{ item.recommended_exercise }}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p style="color: var(--text-secondary); font-size: 14px;">Your handwriting demonstrates solid consistency across all evaluated characteristics!</p>
+  {% endif %}
+
+  <div style="margin-top: 20px;">
+    <a href="{{ url_for('practice_view') }}" class="btn btn-primary">
+      Practice Exercises for Weakest Areas
+    </a>
+  </div>
+</div>
+{% endblock %}
