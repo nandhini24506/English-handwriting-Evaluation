@@ -82,7 +82,6 @@ Refer to the application's configuration and database setup instructions before 
 
 **Website Frontend, Flask Backend, and Database Integration**. This includes connecting the user interface with backend routes, authentication, database operations, and supporting application functionality.
 
-AI evaluation, handwriting image processing, and OCR are shared project areas and are not claimed here as my individual contribution.
 
 ## Repository
 
