@@ -86,7 +86,3 @@ Refer to the application's configuration and database setup instructions before 
 ## Repository
 
 [English Handwriting Evaluation — GitHub](https://github.com/nandhini24506/English-handwriting-Evaluation)
-
-## Academic Project
-
-EHE 2.0 — English Handwriting Evaluation
